@@ -12,16 +12,79 @@ Minimal LMS frontend with Supabase auth and basic LMS features.
 - Graceful loading/error states
 - Single Supabase client at `src/supabaseClient.js` using `VITE_*` envs
 
-## Environment
-Copy `.env.example` to `.env` and set:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- Optional: `VITE_SITE_URL` for redirect base (otherwise uses `window.location.origin`)
+## Environment Variables
+
+Create a `.env` file with the following (Vite-style) variables:
+
+- VITE_SUPABASE_URL: Your Supabase project URL (https://xyzcompany.supabase.co)
+- VITE_SUPABASE_ANON_KEY: Your Supabase anon/public key (never service_role)
+- VITE_SITE_URL (optional): Explicit site URL for auth redirects (defaults to window.location.origin)
+
+These are read in `src/supabaseClient.js` and `src/utils/getURL.js`.
+
+## Local Setup
+
+1) Install dependencies:
+- npm install
+
+2) Configure environment:
+- Copy `.env.example` to `.env`
+- Fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+- Optionally set `VITE_SITE_URL` to `http://localhost:3000`
+
+3) Supabase Authentication redirects:
+- In Supabase Dashboard → Authentication → URL Configuration:
+  - Site URL: http://localhost:3000
+  - Additional Redirect URLs:
+    - http://localhost:3000/auth/callback
+    - http://localhost:3000/auth/reset-password
+
+4) Database schema and RLS:
+- Open Supabase SQL Editor and run assets/supabase.sql
+- Then run assets/supabase_policies.sql
+- Bootstrap first admin user (see Admin Bootstrap below)
+
+5) Start the app:
+- npm start → http://localhost:3000
+
+## Production Setup
+
+1) Build and host the frontend:
+- npm run build
+- Deploy the `build/` output to your hosting provider (e.g., Vercel, Netlify, S3 + CloudFront, or your own server)
+
+2) Environment variables:
+- Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your hosting environment
+- Optionally set VITE_SITE_URL to your production origin, e.g., https://yourdomain.com
+
+3) Supabase Authentication redirects (Production):
+- In Supabase Dashboard → Authentication → URL Configuration:
+  - Site URL: https://yourdomain.com
+  - Additional Redirect URLs:
+    - https://yourdomain.com/auth/callback
+    - https://yourdomain.com/auth/reset-password
+
+4) Database and RLS:
+- Ensure the same SQL from assets/supabase.sql and assets/supabase_policies.sql has been applied (via migrations or SQL Editor)
+- Ensure an admin user is present in public.admin_users
+
+## Admin Bootstrap
+
+Insert your first admin manually via SQL (replace with your auth user UUID):
+
+```sql
+INSERT INTO public.admin_users (id, role)
+VALUES ('<your-auth-user-id>', 'admin');
+```
+
+Find your auth user ID in Supabase Dashboard → Authentication → Users.
 
 ## Routes
+
 - `/` Home
 - `/auth` Sign-in (magic link/password)
 - `/auth/callback` Auth redirect handler
+- `/auth/reset-password` Password reset request and recovery
 - `/courses` List courses
 - `/courses/:id` Course details + assignments
 - `/assignments/:id` Assignment details
@@ -31,11 +94,18 @@ Copy `.env.example` to `.env` and set:
 - `/admin/courses/new` Create course (admin)
 - `/admin/assignments/new` Create assignment (admin)
 
-## Development
-- `npm install`
-- `npm start` → http://localhost:3000
+## Quick-Start Checklist
 
-Security:
-- No secrets in code.
-- Use anon key only on client.
-- Ensure Supabase Authentication URL settings include localhost and production domains.
+- [ ] Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in `.env`
+- [ ] Configure Supabase Auth redirects for local or production
+- [ ] Apply database schema: run assets/supabase.sql
+- [ ] Apply RLS policies: run assets/supabase_policies.sql
+- [ ] Insert first admin into public.admin_users
+- [ ] Start app and sign in
+- [ ] Verify admin can create course and assignment; student can submit; password reset flow works
+
+## Security
+
+- Only use anon key on the client; never use service_role in the frontend
+- Do not commit real secrets
+- Ensure Supabase Authentication URL settings include localhost and production domains
