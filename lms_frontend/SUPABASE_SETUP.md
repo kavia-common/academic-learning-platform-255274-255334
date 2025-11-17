@@ -16,6 +16,7 @@
 4) Routes:
 - /auth for sign-in (magic link/password)
 - /auth/callback mounts src/components/AuthCallback.js
+- /auth/reset-password handles both requesting a reset email and finishing recovery (type=recovery)
 - Protected pages: /dashboard, /assignments/:id/submit
 - Admin pages (require admin_users row): /admin, /admin/courses/new, /admin/assignments/new
 

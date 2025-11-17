@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, us
 import './App.css'
 import { supabase, authApi } from './supabaseClient'
 import AuthCallback from './components/AuthCallback'
+import ResetPassword from './components/ResetPassword'
 
 /**
  * Ocean Professional theme tokens for inline styles
@@ -57,16 +58,16 @@ function Navbar({ session }) {
           </div>
           <strong>Ocean LMS</strong>
         </Link>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Link to="/courses" style={linkStyle}>Courses</Link>
-          {isAuthed && <Link to="/dashboard" style={linkStyle}>Dashboard</Link>}
-          {isAuthed && <Link to="/admin" style={linkStyle}>Admin</Link>}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }} role="navigation" aria-label="Primary">
+          <Link to="/courses" style={linkStyle} aria-label="Courses">Courses</Link>
+          {isAuthed && <Link to="/dashboard" style={linkStyle} aria-label="Dashboard">Dashboard</Link>}
+          {isAuthed && <Link to="/admin" style={linkStyle} aria-label="Admin">Admin</Link>}
           {isAuthed ? (
-            <button onClick={handleSignOut} disabled={signingOut} style={btnStyle('ghost')}>
+            <button onClick={handleSignOut} disabled={signingOut} style={btnStyle('ghost')} aria-label="Sign out">
               {signingOut ? 'Signing out...' : 'Sign out'}
             </button>
           ) : (
-            <Link to="/auth" style={buttonAsLinkStyle}>Sign in</Link>
+            <Link to="/auth" style={buttonAsLinkStyle} aria-label="Sign in">Sign in</Link>
           )}
         </div>
       </div>
@@ -268,25 +269,48 @@ function AuthPage() {
           <button onClick={() => setMode('magic')} style={{ ...btnStyle(mode === 'magic' ? 'primary' : 'ghost') }}>Magic Link</button>
           <button onClick={() => setMode('password')} style={{ ...btnStyle(mode === 'password' ? 'primary' : 'ghost') }}>Password</button>
         </div>
-        <form onSubmit={mode === 'magic' ? onMagic : onPassword} style={{ display: 'grid', gap: 10 }}>
+        <form onSubmit={mode === 'magic' ? onMagic : onPassword} style={{ display: 'grid', gap: 10 }} aria-label="Authentication form">
           <label>
             <div style={{ fontSize: 14, marginBottom: 6 }}>Email</div>
-            <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required
-              style={inputStyle} placeholder="you@example.com" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e)=>setEmail(e.target.value)}
+              required
+              style={inputStyle}
+              placeholder="you@example.com"
+              aria-required="true"
+              aria-label="Email address"
+            />
           </label>
           {mode === 'password' && (
             <label>
               <div style={{ fontSize: 14, marginBottom: 6 }}>Password</div>
-              <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required
-                style={inputStyle} placeholder="••••••••" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e)=>setPassword(e.target.value)}
+                required
+                style={inputStyle}
+                placeholder="••••••••"
+                aria-required="true"
+                aria-label="Password"
+              />
             </label>
           )}
-          <button type="submit" disabled={loading} style={btnStyle('primary')}>
+          <button type="submit" disabled={loading} style={btnStyle('primary')} aria-busy={loading ? 'true' : 'false'}>
             {loading ? 'Please wait...' : (mode === 'magic' ? 'Send Magic Link' : 'Sign in')}
           </button>
         </form>
-        {message && <p style={{ marginTop: 10, color: THEME.amber }}>{message}</p>}
-        {error && <p style={{ marginTop: 10, color: THEME.error }}>{error}</p>}
+        {mode === 'password' && (
+          <div style={{ marginTop: 8, textAlign: 'left' }}>
+            <Link to="/auth/reset-password" style={{ color: THEME.primary, textDecoration: 'none' }}>
+              Forgot password?
+            </Link>
+          </div>
+        )}
+        {message && <p style={{ marginTop: 10, color: THEME.amber }} role="status">{message}</p>}
+        {error && <p style={{ marginTop: 10, color: THEME.error }} role="alert">{error}</p>}
         <p style={{ marginTop: 14, opacity: 0.9 }}>After magic link, you'll be redirected to /auth/callback.</p>
       </div>
     </Container>
@@ -824,6 +848,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={loading ? <PageStatus title="Loading..." /> : (session ? <Navigate to="/dashboard" replace /> : <AuthPage />)} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/courses/:id" element={<CourseDetailPage />} />
         <Route path="/assignments/:id" element={<AssignmentDetailPage />} />
