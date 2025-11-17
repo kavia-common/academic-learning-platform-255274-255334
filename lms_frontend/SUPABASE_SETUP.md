@@ -1,9 +1,9 @@
 # Supabase Setup (Frontend)
 
 1) Copy .env.example to .env and set values:
-- VITE_SUPABASE_URL
-- VITE_SUPABASE_ANON_KEY (anon/public; do not use service_role)
-- Optionally VITE_SITE_URL (fallback uses window.location.origin)
+- REACT_APP_SUPABASE_URL
+- REACT_APP_SUPABASE_ANON_KEY (anon/public; do not use service_role)
+- Optionally REACT_APP_FRONTEND_URL (fallback uses window.location.origin)
 
 2) In Supabase Dashboard:
 - Authentication > URL Configuration:

@@ -10,15 +10,15 @@ Minimal LMS frontend with Supabase auth and basic LMS features.
 - Employee Dashboard with submissions
 - Submit Assignment flow
 - Graceful loading/error states
-- Single Supabase client at `src/supabaseClient.js` using `VITE_*` envs
+- Single Supabase client at `src/supabaseClient.js` using CRA `REACT_APP_*` envs
 
-## Environment Variables
+## Environment Variables (CRA)
 
-Create a `.env` file with the following (Vite-style) variables:
+Create a `.env` file with the following variables:
 
-- VITE_SUPABASE_URL: Your Supabase project URL (https://xyzcompany.supabase.co)
-- VITE_SUPABASE_ANON_KEY: Your Supabase anon/public key (never service_role)
-- VITE_SITE_URL (optional): Explicit site URL for auth redirects (defaults to window.location.origin)
+- REACT_APP_SUPABASE_URL: Your Supabase project URL (https://xyzcompany.supabase.co)
+- REACT_APP_SUPABASE_ANON_KEY: Your Supabase anon/public key (never service_role)
+- REACT_APP_FRONTEND_URL (optional): Explicit site URL for auth redirects (defaults to window.location.origin)
 
 These are read in `src/supabaseClient.js` and `src/utils/getURL.js`.
 
@@ -29,8 +29,8 @@ These are read in `src/supabaseClient.js` and `src/utils/getURL.js`.
 
 2) Configure environment:
 - Copy `.env.example` to `.env`
-- Fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
-- Optionally set `VITE_SITE_URL` to `http://localhost:3000`
+- Fill `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_ANON_KEY`
+- Optionally set `REACT_APP_FRONTEND_URL` to `http://localhost:3000`
 
 3) Supabase Authentication redirects:
 - In Supabase Dashboard → Authentication → URL Configuration:
@@ -54,8 +54,8 @@ These are read in `src/supabaseClient.js` and `src/utils/getURL.js`.
 - Deploy the `build/` output to your hosting provider (e.g., Vercel, Netlify, S3 + CloudFront, or your own server)
 
 2) Environment variables:
-- Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your hosting environment
-- Optionally set VITE_SITE_URL to your production origin, e.g., https://yourdomain.com
+- Set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in your hosting environment
+- Optionally set REACT_APP_FRONTEND_URL to your production origin, e.g., https://yourdomain.com
 
 3) Supabase Authentication redirects (Production):
 - In Supabase Dashboard → Authentication → URL Configuration:
@@ -96,7 +96,7 @@ Find your auth user ID in Supabase Dashboard → Authentication → Users.
 
 ## Quick-Start Checklist
 
-- [ ] Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in `.env`
+- [ ] Set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in `.env`
 - [ ] Configure Supabase Auth redirects for local or production
 - [ ] Apply database schema: run assets/supabase.sql
 - [ ] Apply RLS policies: run assets/supabase_policies.sql

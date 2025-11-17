@@ -2,55 +2,31 @@ import { createClient } from '@supabase/supabase-js'
 import { getURL } from './utils/getURL'
 
 /**
- * Supabase client initialization with dual env support (Vite and CRA).
+ * Supabase client initialization using CRA-style env vars only.
  *
- * Precedence (URL):
- * 1) import.meta.env.VITE_SUPABASE_URL
- * 2) process.env.VITE_SUPABASE_URL
- * 3) process.env.REACT_APP_SUPABASE_URL
- * 4) process.env.REACT_APP_API_BASE
- * 5) process.env.REACT_APP_BACKEND_URL
- *
- * Precedence (Anon Key):
- * 1) import.meta.env.VITE_SUPABASE_ANON_KEY
- * 2) process.env.VITE_SUPABASE_ANON_KEY
- * 3) process.env.REACT_APP_SUPABASE_ANON_KEY
+ * Required:
+ * - REACT_APP_SUPABASE_URL: Supabase project URL
+ * - REACT_APP_SUPABASE_ANON_KEY: Supabase anon/public key (never service_role)
  *
  * Notes:
- * - We never log actual secrets.
- * - Provide concise guidance if required values are missing.
+ * - Never log secrets.
+ * - Provide clear guidance if values are missing (without printing the values).
  */
-const viteEnv = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {}
+const supabaseUrl = process.env?.REACT_APP_SUPABASE_URL
+const supabaseAnonKey = process.env?.REACT_APP_SUPABASE_ANON_KEY
 
-const supabaseUrl =
-  viteEnv?.VITE_SUPABASE_URL ||
-  process.env?.VITE_SUPABASE_URL ||
-  process.env?.REACT_APP_SUPABASE_URL ||
-  process.env?.REACT_APP_API_BASE ||
-  process.env?.REACT_APP_BACKEND_URL
-
-const supabaseAnonKey =
-  viteEnv?.VITE_SUPABASE_ANON_KEY ||
-  process.env?.VITE_SUPABASE_ANON_KEY ||
-  process.env?.REACT_APP_SUPABASE_ANON_KEY
-
-// Validation and helpful messaging without leaking secrets
+// Validation and concise, non-secret warnings
 if (!supabaseUrl || !supabaseAnonKey) {
   const missing = []
-  if (!supabaseUrl) missing.push('Supabase URL')
-  if (!supabaseAnonKey) missing.push('Supabase anon key')
+  if (!supabaseUrl) missing.push('REACT_APP_SUPABASE_URL')
+  if (!supabaseAnonKey) missing.push('REACT_APP_SUPABASE_ANON_KEY')
 
   // eslint-disable-next-line no-console
   console.error(
-    `Missing required ${missing.join(' and ')}. Set VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY (preferred) ` +
-    `or CRA fallbacks REACT_APP_SUPABASE_URL/REACT_APP_SUPABASE_ANON_KEY.`
+    `Missing required environment variables: ${missing.join(', ')}. ` +
+      'Set them in lms_frontend/.env and restart the dev server.'
   )
-  // Provide an actionable hint without secrets
-  // eslint-disable-next-line no-console
-  console.error(
-    'Tip: update your .env and restart the dev server or preview environment after changes.'
-  )
-  throw new Error('Supabase configuration is incomplete. See console for setup guidance.')
+  throw new Error('Supabase configuration is incomplete. Check .env for required variables.')
 }
 
 // PUBLIC_INTERFACE

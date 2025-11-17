@@ -7,8 +7,7 @@ describe('getURL precedence and formatting', () => {
   beforeEach(() => {
     jest.resetModules()
     process.env = { ...OLD_ENV }
-    // Reset VITE_ and REACT_APP_ for each test
-    delete process.env.VITE_SITE_URL
+    // Reset CRA vars for each test
     delete process.env.REACT_APP_FRONTEND_URL
     delete process.env.REACT_APP_SITE_URL
 
@@ -25,14 +24,9 @@ describe('getURL precedence and formatting', () => {
     process.env = OLD_ENV
   })
 
-  test('uses VITE_SITE_URL if set and adds trailing slash', () => {
-    process.env.VITE_SITE_URL = 'https://example.com'
+  test('uses REACT_APP_FRONTEND_URL if set and adds trailing slash', () => {
+    process.env.REACT_APP_FRONTEND_URL = 'https://example.com'
     expect(getURL()).toBe('https://example.com/')
-  })
-
-  test('falls back to REACT_APP_FRONTEND_URL when VITE_SITE_URL missing', () => {
-    process.env.REACT_APP_FRONTEND_URL = 'https://frontend.example'
-    expect(getURL()).toBe('https://frontend.example/')
   })
 
   test('falls back to REACT_APP_SITE_URL then window.location.origin', () => {
@@ -41,7 +35,7 @@ describe('getURL precedence and formatting', () => {
   })
 
   test('adds protocol if missing and ensures trailing slash', () => {
-    process.env.VITE_SITE_URL = 'mydomain.com'
+    process.env.REACT_APP_FRONTEND_URL = 'mydomain.com'
     expect(getURL()).toBe('https://mydomain.com/')
   })
 
