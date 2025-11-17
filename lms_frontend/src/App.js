@@ -35,6 +35,7 @@ function Navbar({ session }) {
   const [signingOut, setSigningOut] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [checkingAdmin, setCheckingAdmin] = useState(false)
+  const [adminError, setAdminError] = useState('')
 
   const isAuthed = !!session?.user
 
@@ -42,30 +43,35 @@ function Navbar({ session }) {
   useEffect(() => {
     let mounted = true
     const checkAdmin = async () => {
+      // Reset states on change
       if (!session?.user?.id) {
         if (mounted) {
           setIsAdmin(false)
           setCheckingAdmin(false)
+          setAdminError('')
         }
         return
       }
       setCheckingAdmin(true)
+      setAdminError('')
       try {
         const { data, error } = await supabase
           .from('admin_users')
           .select('id')
           .eq('id', session.user.id)
           .maybeSingle()
-        if (mounted) {
-          if (error) {
-            // On error, hide Admin link; route-level protection still enforced by AdminRoute
-            setIsAdmin(false)
-          } else {
-            setIsAdmin(!!data)
-          }
+        if (!mounted) return
+        if (error) {
+          setIsAdmin(false)
+          // Surface concise error in UI only if user is looking for Admin (kept subtle)
+          setAdminError(error.message || 'Unable to verify admin access')
+        } else {
+          setIsAdmin(!!data)
         }
-      } catch {
-        if (mounted) setIsAdmin(false)
+      } catch (ex) {
+        if (!mounted) return
+        setIsAdmin(false)
+        setAdminError(ex?.message || 'Unable to verify admin access')
       } finally {
         if (mounted) setCheckingAdmin(false)
       }
@@ -79,8 +85,10 @@ function Navbar({ session }) {
       setSigningOut(true)
       await authApi.signOut()
       navigate('/')
-    } catch {
-      // Swallow; errors will be reflected by auth state
+    } catch (ex) {
+      // Keep message concise and safe
+      // eslint-disable-next-line no-console
+      console.warn('Sign out failed:', ex?.message || 'unknown error')
     } finally {
       setSigningOut(false)
     }
@@ -113,6 +121,12 @@ function Navbar({ session }) {
           )}
         </div>
       </div>
+      {/* Subtle inline notice only if there was an admin check error and user is logged in */}
+      {isAuthed && adminError && (
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 8px' }}>
+          <div style={{ color: THEME.amber, fontSize: 12 }}>{adminError}</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -203,6 +217,7 @@ function AdminRoute({ children }) {
   const { session, loading } = useSession()
   const [isAdmin, setIsAdmin] = useState(null)
   const [checking, setChecking] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const check = async () => {
@@ -211,13 +226,20 @@ function AdminRoute({ children }) {
         setChecking(false)
         return
       }
-      const { data, error } = await supabase.from('admin_users').select('id').eq('id', session.user.id).maybeSingle()
-      if (error) {
+      try {
+        const { data, error: e1 } = await supabase.from('admin_users').select('id').eq('id', session.user.id).maybeSingle()
+        if (e1) {
+          setIsAdmin(false)
+          setError(e1.message || '')
+        } else {
+          setIsAdmin(!!data)
+        }
+      } catch (ex) {
         setIsAdmin(false)
-      } else {
-        setIsAdmin(!!data)
+        setError(ex?.message || '')
+      } finally {
+        setChecking(false)
       }
-      setChecking(false)
     }
     if (!loading) check()
   }, [loading, session])
@@ -726,7 +748,12 @@ function CreateCourse() {
       if (!ownerId) {
         throw new Error('No authenticated user for owner_id.')
       }
-      const insert = { title, description, video_url: videoUrl || null, owner_id: ownerId }
+      const insert = {
+        title,
+        description,
+        video_url: (videoUrl || '').trim() ? videoUrl.trim() : null,
+        owner_id: ownerId, // required by RLS
+      }
       const { error: e1 } = await supabase.from('courses').insert(insert)
       if (e1) throw e1
       navigate('/admin')
@@ -771,8 +798,13 @@ function CreateAssignment() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      const { data } = await supabase.from('courses').select('id,title').order('created_at', { ascending: false })
-      if (mounted) setCourses(data || [])
+      try {
+        const { data, error: e1 } = await supabase.from('courses').select('id,title').order('created_at', { ascending: false })
+        if (e1) throw e1
+        if (mounted) setCourses(data || [])
+      } catch (ex) {
+        if (mounted) setError(ex?.message || 'Failed to load courses')
+      }
     })()
     return () => { mounted = false }
   }, [])
@@ -792,8 +824,8 @@ function CreateAssignment() {
         title,
         description,
         course_id: courseId,
-        due_date: dueDate || null,
-        created_by: creatorId,
+        due_date: (dueDate || '').trim() ? dueDate : null,
+        created_by: creatorId, // required by RLS
       }
       const { error: e1 } = await supabase.from('assignments').insert(insert)
       if (e1) throw e1
@@ -860,14 +892,17 @@ function SubmitAssignmentPage() {
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    if (!session?.user) return
+    if (!session?.user) {
+      setError('You must be signed in to submit.')
+      return
+    }
     setSaving(true); setError('')
     try {
       const payload = {
         assignment_id: id,
-        student_id: session.user.id,
+        student_id: session.user.id, // required by RLS
         content,
-        file_url: fileUrl || null,
+        file_url: (fileUrl || '').trim() ? fileUrl.trim() : null,
         submitted_at: new Date().toISOString(),
       }
       const { error: e1 } = await supabase.from('submissions').insert(payload)
