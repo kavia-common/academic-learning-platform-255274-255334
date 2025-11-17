@@ -13,7 +13,16 @@ import { getURL } from './utils/getURL'
  * - Provide clear guidance if values are missing (without printing the values).
  */
 const supabaseUrl = process.env?.REACT_APP_SUPABASE_URL
-const supabaseAnonKey = process.env?.REACT_APP_SUPABASE_ANON_KEY
+// Preferred key name
+let supabaseAnonKey = process.env?.REACT_APP_SUPABASE_ANON_KEY
+// Compatibility: allow REACT_APP_SUPABASE_KEY if the preferred var is not set
+if (!supabaseAnonKey && process.env?.REACT_APP_SUPABASE_KEY) {
+  supabaseAnonKey = process.env.REACT_APP_SUPABASE_KEY
+  // eslint-disable-next-line no-console
+  console.warn(
+    'Using REACT_APP_SUPABASE_KEY for compatibility. Please rename to REACT_APP_SUPABASE_ANON_KEY.'
+  )
+}
 
 // Validation and concise, non-secret warnings
 if (!supabaseUrl || !supabaseAnonKey) {

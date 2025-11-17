@@ -96,10 +96,12 @@ Find your auth user ID in Supabase Dashboard → Authentication → Users.
 
 ## Quick-Start Checklist
 
-- [ ] Set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in `.env`
+- [ ] Set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in `.env` (see `.env.example`)
 - [ ] Configure Supabase Auth redirects for local or production
+  - Add http://localhost:3000/auth/callback, http://localhost:3000/auth/reset-password, and http://localhost:3000
 - [ ] Apply database schema: run assets/supabase.sql
 - [ ] Apply RLS policies: run assets/supabase_policies.sql
+- [ ] (Optional) Create run_sql RPC if you want automated schema checks (see assets/supabase.md)
 - [ ] Insert first admin into public.admin_users
 - [ ] Start app and sign in
 - [ ] Verify admin can create course and assignment; student can submit; password reset flow works
