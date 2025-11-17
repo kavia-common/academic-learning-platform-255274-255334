@@ -3,14 +3,12 @@ export const buildSelectChain = (result = { data: null, error: null }) => {
   const chain = {
     select: jest.fn(() => chain),
     eq: jest.fn(() => chain),
+    in: jest.fn(() => chain),
     order: jest.fn(() => chain),
     maybeSingle: jest.fn(async () => result),
   };
-  // Also allow direct select() terminal returns for simple .select() case
-  chain.select.mockImplementation((..._args) => {
-    return chain;
-  });
-  // When tests call .select() and await directly (without maybeSingle), return result
+  // Provide direct terminal helpers for flexible awaiting in tests
+  chain.select.mockImplementation((..._args) => chain);
   chain.then = undefined; // not a thenable
   chain._result = result;
   chain._resolve = async () => result;
@@ -20,6 +18,13 @@ export const buildSelectChain = (result = { data: null, error: null }) => {
 export const buildInsertChain = (result = { data: null, error: null }) => {
   const chain = {
     insert: jest.fn(async () => result),
+  };
+  return chain;
+};
+
+export const buildUpsertChain = (result = { data: null, error: null }) => {
+  const chain = {
+    upsert: jest.fn(async () => result),
   };
   return chain;
 };
@@ -53,17 +58,22 @@ export const makeSupabaseAuthMock = (session = null) => {
 export const makeSupabaseMock = ({ authSession = null } = {}) => {
   const auth = makeSupabaseAuthMock(authSession);
   const from = jest.fn((_table) => {
-    // Each test can override supabase.from.mockImplementationOnce to return custom chains.
-    // Provide a default empty chain to avoid crashes.
+    // Default chains; tests can override supabase.from.mockImplementation
     return {
       select: jest.fn(() => ({
         order: jest.fn(async () => ({ data: [], error: null })),
         eq: jest.fn(() => ({
           maybeSingle: jest.fn(async () => ({ data: null, error: null })),
         })),
+        in: jest.fn(() => ({
+          // support .in(...).select-like usage returning rows for enrichment flows
+          then: undefined,
+          _resolve: async () => ({ data: [], error: null }),
+        })),
         maybeSingle: jest.fn(async () => ({ data: null, error: null })),
       })),
       insert: jest.fn(async () => ({ data: null, error: null })),
+      upsert: jest.fn(async () => ({ data: null, error: null })),
     };
   });
   return { auth, from };
