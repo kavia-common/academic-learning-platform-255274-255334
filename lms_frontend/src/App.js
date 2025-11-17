@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import logo from './logo.svg';
 import './App.css';
+// Supabase client is available at src/lib/supabaseClient.js
+// Example usage:
+// import { supabase } from './lib/supabaseClient';
+// const { data, error } = await supabase.from('profiles').select('*');
 
 // PUBLIC_INTERFACE
 function App() {
