@@ -1,49 +1,40 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
 /**
  * Handles Supabase auth callback and redirects.
- * If react-router-dom is not installed/used, replace useNavigate with window.location.
+ * Attempts session retrieval and navigates the user appropriately.
+ * Avoids logging sensitive data.
  */
 export default function AuthCallback() {
-  const navigate = (() => {
-    try {
-      return useNavigate()
-    } catch {
-      return null
-    }
-  })()
+  const [status, setStatus] = useState('Processing authentication...')
+  // Hooks must be called unconditionally at top level
+  const navigate = useNavigate()
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // getSessionFromUrl is used in Next.js; for CRA, the session is handled internally
-        // We still attempt to exchange any code in URL if present.
         const { data, error } = await supabase.auth.getSession()
         if (error) {
-          // eslint-disable-next-line no-console
-          console.error('Auth callback error:', error)
-          if (navigate) navigate('/auth/error')
-          else window.location.replace('/auth/error')
+          setStatus('Authentication error. Redirecting...')
+          navigate('/auth')
           return
         }
         if (data?.session) {
-          if (navigate) navigate('/dashboard')
-          else window.location.replace('/dashboard')
+          setStatus('Authenticated. Redirecting to dashboard...')
+          navigate('/dashboard')
         } else {
-          if (navigate) navigate('/')
-          else window.location.replace('/')
+          setStatus('No session found. Redirecting to home...')
+          navigate('/')
         }
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('Auth callback exception:', e)
-        if (navigate) navigate('/auth/error')
-        else window.location.replace('/auth/error')
+      } catch {
+        setStatus('Unexpected error. Redirecting...')
+        navigate('/auth')
       }
     }
     handleAuthCallback()
   }, [navigate])
 
-  return <div>Processing authentication...</div>
+  return <div style={{ padding: 24 }}>{status}</div>
 }

@@ -7,21 +7,19 @@ import { getURL } from './utils/getURL'
  * Required env vars (Vite style):
  * - VITE_SUPABASE_URL
  * - VITE_SUPABASE_ANON_KEY
- *
- * Note:
- * If you are still using CRA, ensure your build tooling supports exposing VITE_* variables,
- * or migrate your variables to Vite prefix. This file expects Vite-style variables.
  */
-const supabaseUrl = import.meta?.env?.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL
+const supabaseUrl =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_URL) ||
+  process.env.VITE_SUPABASE_URL
+
 const supabaseAnonKey =
-  import.meta?.env?.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) ||
+  process.env.VITE_SUPABASE_ANON_KEY
 
 // Basic validation to avoid silent failures (do not log secrets)
 if (!supabaseUrl || !supabaseAnonKey) {
   // eslint-disable-next-line no-console
-  console.warn(
-    'Supabase not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.'
-  )
+  console.warn('Supabase not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.')
 }
 
 // PUBLIC_INTERFACE
@@ -40,7 +38,6 @@ export const authApi = {
       email,
       password,
       options: {
-        // Use SITE URL derived from getURL()
         emailRedirectTo: `${getURL()}auth/callback`,
       },
     }),
