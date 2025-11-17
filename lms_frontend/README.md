@@ -85,6 +85,8 @@ Find your auth user ID in Supabase Dashboard → Authentication → Users.
 - `/auth` Sign-in (magic link/password)
 - `/auth/callback` Auth redirect handler
 - `/auth/reset-password` Password reset request and recovery
+- `/signup` Email/password sign up with role selection (student|admin)
+- `/signin` Email/password sign in
 - `/courses` List courses
 - `/courses/:id` Course details + assignments
 - `/assignments/:id` Assignment details

@@ -4,6 +4,8 @@ import './App.css'
 import { supabase, authApi } from './supabaseClient'
 import AuthCallback from './components/AuthCallback'
 import ResetPassword from './components/ResetPassword'
+import SignUp from './pages/SignUp'
+import SignIn from './pages/SignIn'
 
 /**
  * Ocean Professional theme tokens for inline styles
@@ -312,6 +314,10 @@ function AuthPage() {
         {message && <p style={{ marginTop: 10, color: THEME.amber }} role="status">{message}</p>}
         {error && <p style={{ marginTop: 10, color: THEME.error }} role="alert">{error}</p>}
         <p style={{ marginTop: 14, opacity: 0.9 }}>After magic link, you'll be redirected to /auth/callback.</p>
+        <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+          <Link to="/signin" style={{ ...btnStyle('ghost'), textDecoration: 'none', display: 'inline-block' }}>Use email/password</Link>
+          <Link to="/signup" style={{ ...buttonAsLinkStyle, textDecoration: 'none' }}>Create an account</Link>
+        </div>
       </div>
     </Container>
   )
@@ -849,6 +855,8 @@ function App() {
         <Route path="/auth" element={loading ? <PageStatus title="Loading..." /> : (session ? <Navigate to="/dashboard" replace /> : <AuthPage />)} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
+        <Route path="/signup" element={loading ? <PageStatus title="Loading..." /> : (session ? <Navigate to="/dashboard" replace /> : <SignUp />)} />
+        <Route path="/signin" element={loading ? <PageStatus title="Loading..." /> : (session ? <Navigate to="/dashboard" replace /> : <SignIn />)} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/courses/:id" element={<CourseDetailPage />} />
         <Route path="/assignments/:id" element={<AssignmentDetailPage />} />

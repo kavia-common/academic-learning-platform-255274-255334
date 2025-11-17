@@ -15,6 +15,8 @@
 
 4) Routes:
 - /auth for sign-in (magic link/password)
+- /signin for direct email/password sign in (src/pages/SignIn.jsx)
+- /signup for email/password registration with role selection (src/pages/SignUp.jsx)
 - /auth/callback mounts src/components/AuthCallback.js
 - /auth/reset-password handles both requesting a reset email and finishing recovery (type=recovery)
 - Protected pages: /dashboard, /assignments/:id/submit
