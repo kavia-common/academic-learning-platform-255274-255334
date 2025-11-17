@@ -7,6 +7,9 @@ export const buildSelectChain = (result = { data: null, error: null }) => {
     order: jest.fn(() => chain),
     maybeSingle: jest.fn(async () => result),
   };
+  // Some code paths call .single() instead of maybeSingle()
+  chain.single = jest.fn(async () => result);
+
   // Provide direct terminal helpers for flexible awaiting in tests
   chain.select.mockImplementation((..._args) => chain);
   chain.then = undefined; // not a thenable
