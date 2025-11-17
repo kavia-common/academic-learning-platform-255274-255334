@@ -33,8 +33,46 @@ function Container({ children }) {
 function Navbar({ session }) {
   const navigate = useNavigate()
   const [signingOut, setSigningOut] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [checkingAdmin, setCheckingAdmin] = useState(false)
 
   const isAuthed = !!session?.user
+
+  // Determine admin visibility by checking admin_users table for current user
+  useEffect(() => {
+    let mounted = true
+    const checkAdmin = async () => {
+      if (!session?.user?.id) {
+        if (mounted) {
+          setIsAdmin(false)
+          setCheckingAdmin(false)
+        }
+        return
+      }
+      setCheckingAdmin(true)
+      try {
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('id', session.user.id)
+          .maybeSingle()
+        if (mounted) {
+          if (error) {
+            // On error, hide Admin link; route-level protection still enforced by AdminRoute
+            setIsAdmin(false)
+          } else {
+            setIsAdmin(!!data)
+          }
+        }
+      } catch {
+        if (mounted) setIsAdmin(false)
+      } finally {
+        if (mounted) setCheckingAdmin(false)
+      }
+    }
+    checkAdmin()
+    return () => { mounted = false }
+  }, [session?.user?.id])
 
   const handleSignOut = async () => {
     try {
@@ -63,7 +101,9 @@ function Navbar({ session }) {
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }} role="navigation" aria-label="Primary">
           <Link to="/courses" style={linkStyle} aria-label="Courses">Courses</Link>
           {isAuthed && <Link to="/dashboard" style={linkStyle} aria-label="Dashboard">Dashboard</Link>}
-          {isAuthed && <Link to="/admin" style={linkStyle} aria-label="Admin">Admin</Link>}
+          {isAuthed && !checkingAdmin && isAdmin && (
+            <Link to="/admin" style={linkStyle} aria-label="Admin">Admin</Link>
+          )}
           {isAuthed ? (
             <button onClick={handleSignOut} disabled={signingOut} style={btnStyle('ghost')} aria-label="Sign out">
               {signingOut ? 'Signing out...' : 'Sign out'}
