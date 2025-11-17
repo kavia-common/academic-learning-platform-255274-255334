@@ -347,7 +347,7 @@ function CoursesPage() {
         if (e1) throw e1
         if (mounted) setCourses(data || [])
       } catch (ex) {
-        setError('Failed to load courses.')
+        setError(`Failed to load courses: ${ex?.message || 'unknown error'}`)
       } finally {
         setLoading(false)
       }
@@ -407,8 +407,8 @@ function CourseDetailPage() {
           setCourse(c)
           setAssignments(a || [])
         }
-      } catch {
-        setError('Failed to load course.')
+      } catch (ex) {
+        setError(`Failed to load course: ${ex?.message || 'unknown error'}`)
       } finally {
         setLoading(false)
       }
@@ -481,8 +481,8 @@ function AssignmentDetailPage() {
         const { data, error: e1 } = await supabase.from('assignments').select('*').eq('id', id).maybeSingle()
         if (e1) throw e1
         if (mounted) setAssignment(data)
-      } catch {
-        setError('Failed to load assignment.')
+      } catch (ex) {
+        setError(`Failed to load assignment: ${ex?.message || 'unknown error'}`)
       } finally {
         setLoading(false)
       }
@@ -523,27 +523,56 @@ function DashboardPage() {
     let mounted = true
     ;(async () => {
       try {
-        const [{ data: c, error: e1 }, { data: s, error: e2 }] = await Promise.all([
-          supabase.from('courses').select('*').order('created_at', { ascending: false }),
-          userId ? supabase.from('submissions').select('*, assignments(title)').eq('student_id', userId).order('submitted_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
-        ])
-        if (e1) throw e1
-        if (e2) throw e2
+        // Always load courses for authenticated users
+        const { data: c, error: eCourses } = await supabase
+          .from('courses')
+          .select('*')
+          .order('created_at', { ascending: false })
+        if (eCourses) throw eCourses
+
+        let s = []
+        // Only attempt submissions load if userId is present to satisfy RLS (student_id = auth.uid())
+        if (userId) {
+          // Step 1: get submissions for this user (no joins to avoid relation name mismatches)
+          const { data: subsData, error: eSubs } = await supabase
+            .from('submissions')
+            .select('id, assignment_id, content, file_url, grade, submitted_at')
+            .eq('student_id', userId)
+            .order('submitted_at', { ascending: false })
+          if (eSubs) throw eSubs
+
+          s = subsData || []
+
+          // Step 2: enrich submissions with assignment titles in one batched query
+          const assignmentIds = Array.from(new Set(s.map((x) => x.assignment_id).filter(Boolean)))
+          if (assignmentIds.length > 0) {
+            const { data: assignRows, error: eAssign } = await supabase
+              .from('assignments')
+              .select('id, title')
+              .in('id', assignmentIds)
+            if (eAssign) throw eAssign
+            const titleMap = new Map((assignRows || []).map((a) => [a.id, a.title]))
+            s = s.map((row) => ({ ...row, assignment_title: titleMap.get(row.assignment_id) || 'Assignment' }))
+          }
+        }
+
         if (mounted) {
           setCourses(c || [])
-          setSubs(s || [])
+          setSubs(s)
         }
-      } catch {
-        setError('Failed to load dashboard data.')
+      } catch (ex) {
+        setError(`Failed to load dashboard data: ${ex?.message || 'unknown error'}`)
       } finally {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
     })()
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
   }, [userId])
 
   if (loading) return <PageStatus title="Loading dashboard..." />
-  if (error) return <PageStatus title="Error" subtitle={error} tone="error" />
+  if (error) return <PageStatus title="Error loading dashboard" subtitle={error} tone="error" />
 
   return (
     <Container>
@@ -570,7 +599,7 @@ function DashboardPage() {
               <div key={s.id} style={{ border: `1px solid ${THEME.border}`, borderRadius: 10, padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <strong>{s.assignments?.title || 'Assignment'}</strong>
+                    <strong>{s.assignment_title || 'Assignment'}</strong>
                     <p style={{ marginTop: 6, opacity: 0.9 }}>{s.content?.slice?.(0, 140) || s.file_url || 'Submitted'}</p>
                   </div>
                   <div style={{ fontSize: 12, color: THEME.primary }}>
@@ -601,8 +630,8 @@ function AdminDashboard() {
         const { data, error: e1 } = await supabase.from('courses').select('*').order('created_at', { ascending: false })
         if (e1) throw e1
         if (mounted) setCourses(data || [])
-      } catch {
-        setError('Failed to load admin data.')
+      } catch (ex) {
+        setError(`Failed to load admin data: ${ex?.message || 'unknown error'}`)
       } finally {
         setLoading(false)
       }
@@ -642,6 +671,7 @@ function AdminDashboard() {
  */
 function CreateCourse() {
   const navigate = useNavigate()
+  const { session } = useSession()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
@@ -652,12 +682,16 @@ function CreateCourse() {
     e.preventDefault()
     setLoading(true); setError('')
     try {
-      const insert = { title, description, video_url: videoUrl }
+      const ownerId = session?.user?.id
+      if (!ownerId) {
+        throw new Error('No authenticated user for owner_id.')
+      }
+      const insert = { title, description, video_url: videoUrl || null, owner_id: ownerId }
       const { error: e1 } = await supabase.from('courses').insert(insert)
       if (e1) throw e1
       navigate('/admin')
-    } catch {
-      setError('Failed to create course.')
+    } catch (ex) {
+      setError(`Failed to create course: ${ex?.message || 'unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -685,6 +719,7 @@ function CreateCourse() {
  */
 function CreateAssignment() {
   const navigate = useNavigate()
+  const { session } = useSession()
   const [courses, setCourses] = useState([])
   const [courseId, setCourseId] = useState('')
   const [title, setTitle] = useState('')
@@ -706,12 +741,25 @@ function CreateAssignment() {
     e.preventDefault()
     setLoading(true); setError('')
     try {
-      const insert = { title, description, course_id: courseId || null, due_date: dueDate || null }
+      const creatorId = session?.user?.id
+      if (!creatorId) {
+        throw new Error('No authenticated user for created_by.')
+      }
+      if (!courseId) {
+        throw new Error('Please select a course.')
+      }
+      const insert = {
+        title,
+        description,
+        course_id: courseId,
+        due_date: dueDate || null,
+        created_by: creatorId,
+      }
       const { error: e1 } = await supabase.from('assignments').insert(insert)
       if (e1) throw e1
       navigate('/admin')
-    } catch {
-      setError('Failed to create assignment.')
+    } catch (ex) {
+      setError(`Failed to create assignment: ${ex?.message || 'unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -785,8 +833,8 @@ function SubmitAssignmentPage() {
       const { error: e1 } = await supabase.from('submissions').insert(payload)
       if (e1) throw e1
       navigate('/dashboard')
-    } catch {
-      setError('Failed to submit assignment.')
+    } catch (ex) {
+      setError(`Failed to submit assignment: ${ex?.message || 'unknown error'}`)
     } finally {
       setSaving(false)
     }
